@@ -1,5 +1,7 @@
-export const JOBS_QUEUE = "fluxpipe:jobs";
-export const DLQ_QUEUE = "fluxpipe:jobs:dlq";
+// BullMQ rejects queue names containing ":" (it uses colons as the separator
+// in the Redis keys it builds internally, e.g. "bull:<queueName>:wait").
+export const JOBS_QUEUE = "fluxpipe-jobs";
+export const DLQ_QUEUE = "fluxpipe-jobs-dlq";
 
 export const METRICS_PREFIX = "fluxpipe";
 
