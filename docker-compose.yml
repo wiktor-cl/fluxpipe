@@ -1,0 +1,95 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: fluxpipe
+      POSTGRES_PASSWORD: fluxpipe
+      POSTGRES_DB: fluxpipe
+    ports:
+      - "5432:5432"
+    volumes:
+      - fluxpipe-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fluxpipe -d fluxpipe"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mock-partner-api:
+    build:
+      context: .
+      dockerfile: apps/mock-partner-api/Dockerfile
+    environment:
+      PORT: "4100"
+      FAILURE_RATE: "0.35"
+      LATENCY_MS: "150"
+    ports:
+      - "4100:4100"
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      DATABASE_URL: postgres://fluxpipe:fluxpipe@postgres:5432/fluxpipe
+      REDIS_URL: redis://redis:6379
+      PORT: "3000"
+      JOB_MAX_ATTEMPTS: "5"
+      RATE_LIMIT_MAX: "100"
+      RATE_LIMIT_WINDOW: "1 minute"
+      LOG_LEVEL: info
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    environment:
+      DATABASE_URL: postgres://fluxpipe:fluxpipe@postgres:5432/fluxpipe
+      REDIS_URL: redis://redis:6379
+      EXTERNAL_SERVICE_URL: http://mock-partner-api:4100
+      WORKER_METRICS_PORT: "9100"
+      WORKER_CONCURRENCY: "5"
+      CIRCUIT_FAILURE_THRESHOLD: "5"
+      CIRCUIT_RESET_TIMEOUT_MS: "15000"
+      CIRCUIT_HALF_OPEN_SUCCESSES: "1"
+      LOG_LEVEL: info
+    ports:
+      - "9100:9100"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mock-partner-api:
+        condition: service_started
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: apps/dashboard/Dockerfile
+      args:
+        VITE_API_BASE_URL: http://localhost:3000
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+
+volumes:
+  fluxpipe-pgdata:
