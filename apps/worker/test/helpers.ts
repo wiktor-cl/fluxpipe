@@ -2,7 +2,10 @@ import http from "node:http";
 import { createLogger, type Logger } from "@fluxpipe/shared";
 
 export function silentLogger(): Logger {
-  return createLogger({ name: "test", level: "silent" });
+  // "error" rather than "silent" - if something in the worker's error path
+  // itself fails (e.g. a swallowed DLQ-enqueue error), it should still show
+  // up in CI test output instead of vanishing entirely.
+  return createLogger({ name: "test", level: "error" });
 }
 
 export async function waitFor(

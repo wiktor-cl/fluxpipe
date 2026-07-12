@@ -138,7 +138,7 @@ describe.skipIf(!hasInfra)("worker retry/backoff and dead-letter handling", () =
 
     let dlqJob: Awaited<ReturnType<typeof dlqQueue.getJob>> | undefined;
     await waitFor(async () => {
-      dlqJob = await dlqQueue.getJob(`dlq:${job.id}`);
+      dlqJob = await dlqQueue.getJob(`dlq-${job.id}`);
       return dlqJob !== undefined;
     }, 5_000);
     expect(dlqJob).toBeDefined();

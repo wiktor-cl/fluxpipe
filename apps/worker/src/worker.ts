@@ -76,7 +76,7 @@ export function createWorker(deps: CreateWorkerDeps): Worker<JobData> {
                 correlationId: job.data.correlationId,
                 error: message,
               },
-              { jobId: `dlq:${jobId}` },
+              { jobId: `dlq-${jobId}` },
             );
           } catch (dlqErr) {
             log.error(
