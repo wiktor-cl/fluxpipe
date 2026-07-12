@@ -59,6 +59,12 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Build shared packages
+        # apps/api and apps/worker resolve @fluxpipe/shared and @fluxpipe/db
+        # via their compiled dist/ output (see each package's "types" field),
+        # so typecheck/test/build all need these built first.
+        run: npm run build --workspace packages/shared --workspace packages/db
+
       - name: Type check
         run: npm run typecheck
 
