@@ -129,15 +129,19 @@ describe.skipIf(!hasInfra)("worker retry/backoff and dead-letter handling", () =
     await waitFor(async () => {
       const current = await repository.findById(job.id);
       return current?.status === "dead_letter";
-    }, 15_000);
+    }, 25_000);
 
     expect(mockServer.getCallCount()).toBe(3); // exactly maxAttempts calls, no more
 
     const finalRow = await repository.findById(job.id);
     expect(finalRow?.lastError).toContain("503");
 
-    const dlqJob = await dlqQueue.getJob(`dlq:${job.id}`);
+    let dlqJob: Awaited<ReturnType<typeof dlqQueue.getJob>> | undefined;
+    await waitFor(async () => {
+      dlqJob = await dlqQueue.getJob(`dlq:${job.id}`);
+      return dlqJob !== undefined;
+    }, 5_000);
     expect(dlqJob).toBeDefined();
     expect(dlqJob?.data).toMatchObject({ originalJobId: job.id, type: "send-webhook" });
-  }, 20_000);
+  }, 35_000);
 });

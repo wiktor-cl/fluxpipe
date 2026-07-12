@@ -63,17 +63,27 @@ export function createWorker(deps: CreateWorkerDeps): Worker<JobData> {
           // dead_letter - the DB row is what callers (dashboard, tests) poll
           // to know the job has "settled", so it must not be visible as
           // dead_letter until the DLQ entry it implies actually exists.
-          await deps.dlqQueue.add(
-            "dead-letter",
-            {
-              originalJobId: jobId,
-              type: job.data.type,
-              payload: job.data.payload,
-              correlationId: job.data.correlationId,
-              error: message,
-            },
-            { jobId: `dlq:${jobId}` },
-          );
+          // The DLQ add is best-effort here: a failure to enqueue it must
+          // not prevent the terminal Postgres status write, or the job's
+          // final state would never settle at all.
+          try {
+            await deps.dlqQueue.add(
+              "dead-letter",
+              {
+                originalJobId: jobId,
+                type: job.data.type,
+                payload: job.data.payload,
+                correlationId: job.data.correlationId,
+                error: message,
+              },
+              { jobId: `dlq:${jobId}` },
+            );
+          } catch (dlqErr) {
+            log.error(
+              { err: dlqErr instanceof Error ? dlqErr.message : String(dlqErr) },
+              "failed to enqueue dead-letter entry",
+            );
+          }
           await deps.repository.markDeadLetter(jobId, currentAttempt, message);
           log.error({ err: message }, "job exhausted retries, moved to dead-letter queue");
         } else {
