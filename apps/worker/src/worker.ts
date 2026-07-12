@@ -59,7 +59,10 @@ export function createWorker(deps: CreateWorkerDeps): Worker<JobData> {
 
         if (isFinal) {
           jobsProcessedTotal.inc({ outcome: "dead_letter" });
-          await deps.repository.markDeadLetter(jobId, currentAttempt, message);
+          // Enqueue into the DLQ *before* flipping the Postgres status to
+          // dead_letter - the DB row is what callers (dashboard, tests) poll
+          // to know the job has "settled", so it must not be visible as
+          // dead_letter until the DLQ entry it implies actually exists.
           await deps.dlqQueue.add(
             "dead-letter",
             {
@@ -71,6 +74,7 @@ export function createWorker(deps: CreateWorkerDeps): Worker<JobData> {
             },
             { jobId: `dlq:${jobId}` },
           );
+          await deps.repository.markDeadLetter(jobId, currentAttempt, message);
           log.error({ err: message }, "job exhausted retries, moved to dead-letter queue");
         } else {
           jobsProcessedTotal.inc({ outcome: "failed_retrying" });
