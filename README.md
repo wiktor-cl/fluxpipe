@@ -1,5 +1,7 @@
 # FluxPipe
 
+[![CI](https://github.com/wiktor-cl/fluxpipe/actions/workflows/ci.yml/badge.svg)](https://github.com/wiktor-cl/fluxpipe/actions/workflows/ci.yml)
+
 A production-shaped distributed job processing system: an API that accepts work, a
 worker fleet that processes it against a flaky external dependency, and the
 reliability machinery a real system needs around that - idempotency, retries with
