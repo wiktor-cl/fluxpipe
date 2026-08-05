@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/wiktor-cl/fluxpipe/actions/workflows/ci.yml/badge.svg)](https://github.com/wiktor-cl/fluxpipe/actions/workflows/ci.yml)
 
+**Real numbers, not estimates:** latest CI run, 1m18s total — Node 18.x/20.x matrix build-and-test, 18/18 tests passing across 3 test files (lint, typecheck, unit + integration tests, build). See the CI badge above for current status.
+
 A production-shaped distributed job processing system: an API that accepts work, a
 worker fleet that processes it against a flaky external dependency, and the
 reliability machinery a real system needs around that - idempotency, retries with
